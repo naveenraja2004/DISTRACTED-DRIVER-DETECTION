@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero animate__animated animate__fadeIn">
+    <div class="hero-content">
+        <h1>Next Generation <span>Driver Safety</span> System</h1>
+        <p>AI-powered fatigue detection to keep drivers safe on the road</p>
+        <div class="cta-buttons">
+            <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+            <a href="{{ url_for('register') }}" class="btn btn-secondary">Register</a>
+        </div>
+    </div>
+    <div class="hero-image">
+        <i class="fas fa-shield-alt"></i>
+    </div>
+</div>
+
+<div class="features">
+    <div class="feature-card animate__animated animate__fadeInUp">
+        <i class="fas fa-eye"></i>
+        <h3>Real-time Detection</h3>
+        <p>Advanced computer vision algorithms monitor driver behavior in real-time</p>
+    </div>
+    <div class="feature-card animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+        <i class="fas fa-brain"></i>
+        <h3>AI-Powered</h3>
+        <p>Machine learning models trained to detect fatigue patterns with high accuracy</p>
+    </div>
+    <div class="feature-card animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
+        <i class="fas fa-bell"></i>
+        <h3>Instant Alerts</h3>
+        <p>Visual and audio alerts notify drivers when fatigue is detected</p>
+    </div>
+</div>
+{% endblock %}

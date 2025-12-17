@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-container animate__animated animate__fadeIn">
+    <div class="dashboard-header">
+        <h2>Welcome, <span>{{ username }}</span></h2>
+        <p>Toggle Safe Drive Mode to start monitoring</p>
+    </div>
+    
+    <div class="detection-panel">
+        <div class="toggle-container">
+            <h3>Safe Drive Mode</h3>
+            <label class="switch">
+                <input type="checkbox" id="detection-toggle">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        
+        <div class="camera-container">
+            <div id="camera-feed" class="camera-feed">
+                <div class="camera-placeholder">
+                    <i class="fas fa-video"></i>
+                    <p>Camera feed will appear here</p>
+                </div>
+            </div>
+            
+            <div id="status-indicator" class="status-indicator safe">
+                <div class="status-light"></div>
+                <div class="status-text">SAFE</div>
+            </div>
+        </div>
+        
+        <div class="detection-info">
+            <div class="info-card drowsy">
+                <i class="fas fa-bed"></i>
+                <h4>Drowsy Detection</h4>
+                <p>Alerts when driver shows signs of fatigue</p>
+            </div>
+            <div class="info-card yawn">
+                <i class="fas fa-yawn"></i>
+                <h4>Yawn Detection</h4>
+                <p>Identifies yawning as a fatigue indicator</p>
+            </div>
+            <div class="info-card tilt">
+                <i class="fas fa-angle-double-right"></i>
+                <h4>Face Tilt Detection</h4>
+                <p>Monitors head position for distraction</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+    $(document).ready(function() {
+        let detectionActive = false;
+        let buzzerAudio;
+        let socket;
+        
+        // Initialize buzzer audio
+        function initializeBuzzer() {
+            buzzerAudio = new Audio('{{ url_for("static", filename="sounds/buzzer.mp3") }}');
+            buzzerAudio.loop = true;
+        }
+        
+        // Initialize Socket.IO
+        function initializeSocket() {
+            socket = io();
+            
+            socket.on('detection_frame', function(data) {
+                // Update the camera feed
+                const img = new Image();
+                img.onload = function() {
+                    $('#camera-feed').empty().append(img);
+                };
+                img.src = data.image;
+                
+                // Update status indicator
+                updateStatusIndicator(data.status.toLowerCase());
+                
+                // Handle buzzer
+                if (data.buzzer_active) {
+                    playBuzzer();
+                } else {
+                    stopBuzzer();
+                }
+            });
+        }
+        
+        // Toggle detection
+        $('#detection-toggle').change(function() {
+            detectionActive = $(this).is(':checked');
+            
+            if (detectionActive) {
+                startDetection();
+            } else {
+                stopDetection();
+            }
+        });
+        
+        function startDetection() {
+            // Initialize buzzer
+            initializeBuzzer();
+            
+            // Initialize socket if not already initialized
+            if (!socket) {
+                initializeSocket();
+            }
+            
+            // Send request to start detection
+            $.post('/toggle_detection', function() {
+                // Clear camera feed
+                $('#camera-feed').html(`
+                    <div class="camera-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Initializing camera...</p>
+                    </div>
+                `);
+            });
+        }
+        
+        function stopDetection() {
+            // Send request to stop detection
+            $.post('/toggle_detection');
+            
+            // Stop buzzer
+            if (buzzerAudio) {
+                buzzerAudio.pause();
+                buzzerAudio.currentTime = 0;
+            }
+            
+            // Reset UI
+            $('#camera-feed').html(`
+                <div class="camera-placeholder">
+                    <i class="fas fa-video"></i>
+                    <p>Camera feed will appear here</p>
+                </div>
+            `);
+            
+            // Reset status indicator
+            updateStatusIndicator('safe');
+        }
+        
+        function updateStatusIndicator(status) {
+            const indicator = $('#status-indicator');
+            indicator.removeClass('safe drowsy yawn tilt');
+            
+            switch(status) {
+                case 'safe':
+                    indicator.addClass('safe');
+                    indicator.find('.status-text').text('SAFE');
+                    break;
+                case 'drowsy':
+                    indicator.addClass('drowsy');
+                    indicator.find('.status-text').text('DROWSY');
+                    break;
+                case 'yawn':
+                    indicator.addClass('yawn');
+                    indicator.find('.status-text').text('YAWNING');
+                    break;
+                case 'face_tilt':
+                    indicator.addClass('tilt');
+                    indicator.find('.status-text').text('FACE TILT');
+                    break;
+            }
+        }
+        
+        function playBuzzer() {
+            if (buzzerAudio && buzzerAudio.paused) {
+                buzzerAudio.play();
+            }
+        }
+        
+        function stopBuzzer() {
+            if (buzzerAudio && !buzzerAudio.paused) {
+                buzzerAudio.pause();
+                buzzerAudio.currentTime = 0;
+            }
+        }
+    });
+</script>
+{% endblock %}
